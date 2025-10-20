@@ -1,0 +1,18 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html, body {
+  height: 100vh;
+}
+
+.flex { display: flex }
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.flex-1 { flex: 1 }
+.items-stretch { align-items: stretch }
+.overflow-y-auto { overflow-y: auto }
+.overflow-y-hidden { overflow-y: hidden }
