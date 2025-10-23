@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>q</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="markdown.css" />
+</head>
+<body>
+<h1 id="event-data">Event Data</h1>
+<p>Event data can be serialized as Protobuf, TOML, JSON, or whatever.
+For our purposes, JSON makes sense.</p>
+<h2 id="event-headers">Event headers</h2>
+<p>Each event needs to have a header. The header will contain common
+properties required to process any event. Two obvious properties are
+<code>from</code> and <code>type</code>.</p>
+<h3 id="event-origin">Event origin</h3>
+<p>Each event will have a <code>from</code> property. This is the player
+who spawned the event.</p>
+<h3 id="event-tick">Event tick</h3>
+<p>Each event will have a <code>tick</code> property. This will indicate
+the game tick in which it was spawned by the originating client. This
+allows us to marshall events and process them in the same order on each
+client.</p>
+<h3 id="event-type">Event type</h3>
+<p>Each event will have a <code>type</code> property. For instance, when
+a new player enters a game, the server should send a <code>join</code>
+event to all existing players. Players might spawn <code>missile</code>
+or <code>shield</code> events.</p>
+<p>One event type will be <code>ack</code>. Each client will send an
+<code>ack</code> event whenever it receives a non-<code>ack</code>
+event.</p>
+<h1 id="event-queue">Event Queue</h1>
+<p>All events will be queued by each client. This includes
+locally-generated events. Events remain in the queue until they have
+been acknowledged by all players. Once they have been universally
+acknowledged, they are released from the queue into gameplay.
+<code>ack</code> events themselves are not released into gameplay. Three
+event types affect queue management.</p>
+<ul>
+<li><code>ack</code></li>
+<li><code>join</code></li>
+<li><code>exit</code></li>
+</ul>
+<p>These will be explained later.</p>
+<h2 id="queue-wrapper">Queue wrapper</h2>
+<p>Each event is wrapped when it is placed in the queue. A queued event
+contains two root properties.</p>
+<ul>
+<li><code>ack</code></li>
+<li><code>event</code></li>
+</ul>
+<p>The <code>event</code> property contains the event as it was
+received.</p>
+<p>The <code>ack</code> property includes the following
+sub-properties:</p>
+<ul>
+<li><code>expect</code></li>
+<li><code>received</code></li>
+</ul>
+<p>The <code>expect</code> property is a list of players at the time
+theh event was received. The <code>received</code> property is a list of
+players that have acknowledged the event.</p>
+<h3 id="expected-acknowledgements">Expected acknowledgements</h3>
+<p>Each client will keep track of the list of active players. When a
+client receives a <code>join</code> event, it immediately adds the
+originating player of the <code>join</code> event to its list of active
+players. It does not wait for the <code>join</code> event to be
+acknowledged before adding the player to the list of players for the
+queue. Any event queued after a player joins must be acknowleged by that
+player to be released from the queue.</p>
+<p>When a client receives an <code>exit</code> event, it immediately
+removes the originating player from the list of active players for the
+queue. Additionally, it removes the player from the
+<code>ack.expect</code> property of all queued events.</p>
+<h3 id="received-acknowledgements">Received acknowledgements</h3>
+<p>An <code>ack</code> event includes an <code>event</code> property
+that identifies the event being acknowledged. The event property
+contains three sub-properties cloned from the originl event.</p>
+<ul>
+<li><code>from</code></li>
+<li><code>tick</code></li>
+<li><code>type</code></li>
+</ul>
+<p>When a client receives an <code>ack</code> event, it will search its
+queue for existing events that match these properties. For any matching
+events, the list of received acknowlegements will be amended.</p>
+<p>When the event with the oldest tick in the queue has received an
+<code>ack</code> from each entry of its</p>
+<h2 id="resending-events">Resending events</h2>
+<p>When a client receives an event it resends any queued event that
+originated from itself that is older than the incoming event.</p>
+<h2 id="avoiding-replay">Avoiding replay</h2>
+<p>Events that leave the queue must be remembered for a reasonable time
+to avoid replaying the event. Events that are older than the remember
+window at the time they are received should be ignored. Events in the
+queue that are older than the remember window should be discarded from
+the queue.</p>
+<h2 id="leaving-the-queue">Leaving the queue</h2>
+<p>Events leave the queue according to age. With the exception of
+<code>ack</code> events, no event can leave the queue before an older
+event. The oldest event in the queue leaves the queue under the
+following conditions:</p>
+<h3 id="universal-acknowlegment">Universal acknowlegment</h3>
+<p>All players in the event’s <code>expect</code> property are present
+in the event’s <code>received</code> property. The event is moved to the
+remembered list and is entered into gameplay.</p>
+<h3 id="timed-out">Timed out</h3>
+<p>The event’s age exceeds the remember window and it has not been
+universally acknowledged. In this case the event is discarded without
+entering gameplay.</p>
+<h3 id="ack-events"><code>ack</code> events</h3>
+<p><code>ack</code> events are not queued if they arrive after the event
+they acknowledge. If they arrive before the original event, they are
+queued until that event arrives. They are removed immediately when the
+original event arrives. <code>ack</code> events are the only event that
+can leave the queue out of order. They are not remembered after they are
+removed.</p>
+</body>
+</html>

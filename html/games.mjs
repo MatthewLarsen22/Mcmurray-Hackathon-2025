@@ -23,15 +23,11 @@ customElements.define('tank-games', class extends HTMLElement {
 
 	constructor(){
 		super();
-		state.ws.addEventListener('message', ev=>{
-			console.log('websocket message', ev.data);
-			const [cmd, list] = ev.data.split(' ',2);
-			if ('games'==cmd) {
-				this.#list = JSON.parse(list);
-				this.render();
-			}
-		})
-		state.ws.send("list");
+		document.addEventListener('ws-games', ev=>{
+			this.#list = ev.detail.list;
+			this.render();
+		});
+		state.queue.tx({ type: 'list' });
 	}
 	
 	render() {
