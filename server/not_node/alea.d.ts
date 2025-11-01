@@ -1,0 +1,1 @@
+export declare function Alea(seed: string): any 
