@@ -2,42 +2,55 @@ import css from '/css.mjs';
 import state from '/state.mjs';
 
 css(`
-	tank-games {
+	tank-lobby {
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
 		margin: auto;
 	}
 
-	tank-games > div:nth-child(2) {
+	tank-lobby > div:nth-child(3) {
 		flex: 1;
 		padding: 0.5rem;
 		overflow-y: auto;
 		border: thin solid  gray;
 		border-radius: 0.5rem;
+		min-height: 2rem;
 	}
+
+	tank-lobby .flex { display: flex }
+	tank-lobby .flex-1 { flex: 1}
 `);
 
-customElements.define('tank-games', class extends HTMLElement {
+customElements.define('tank-lobby', class extends HTMLElement {
+	#name = null;
 	#list = [];
 
 	constructor(){
 		super();
-		document.addEventListener('ws-games', ev=>{
+		document.addEventListener('ws-connect', ev=>{
+			console.log('ws-connect', ev.detail);
+			this.#name = ev.detail.id;
+			this.render();
+		});
+		document.addEventListener('ws-gamelist', ev=>{
+			console.log('ws-gamelist', ev.detail);
 			this.#list = ev.detail.list;
 			this.render();
 		});
-		state.queue.tx({ type: 'list' });
 	}
 	
 	render() {
 		this.innerHTML = `
+			<div class="flex"><span classs="flex-1">${this.name}</span><button>🖉</button></div>
 			<div>Games:</div>
 			<div>
 				${this.#list.map(g=>`<tank-game>${g}</tank-game>`).join('\n')}
 			</div>
 			<button>New</button>
 		`;
+
+		this.lastElementChild.addEventListener('click', _=> state.ws.send({ type: 'create' }) );
 	}
 });
 

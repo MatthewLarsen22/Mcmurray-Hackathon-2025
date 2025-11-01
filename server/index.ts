@@ -27,8 +27,11 @@ const server = Bun.serve({
       ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
     },
     close(ws){
-      server.publish(JSON.stringify(msg('exit'), {id: players[ws].id}));
-      if (players[ws].game) ws.unsubscribe(players[ws].game);
+      console.log('game', players[ws].game);
+      if (players[ws].game){
+        server.publish(players[ws].game, JSON.stringify(msg('exit'), {id: players[ws].id}));
+        ws.unsubscribe(players[ws].game);
+      }
       delete players[ws];
     },
     message(ws, msg){
@@ -62,7 +65,6 @@ const server = Bun.serve({
             let r = Math.floor(Match.random()*alphabet.length);
             id += alphabet[r];
           }
-          ws.subscribe(id);
           let game = {
             id,
             players: [{
@@ -70,7 +72,9 @@ const server = Bun.serve({
               x: Math.random()
             }]
           };
+          players[ws].game = id;
           game.push(game);
+          ws.subscribe(id);
           ws.send(JSON.stringify(Object.assign(msg('join'), { game })));
       }
     }

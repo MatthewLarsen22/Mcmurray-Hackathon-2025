@@ -5,12 +5,13 @@ export default class {
     constructor(ws) {
         this.#ws = ws;
         this.#ws.addEventListener('message', e=> {
-			let event = JSON.parse(e.data);
+            let event = JSON.parse(e.data);
+            console.log('ws message', event);
             if (event.header?.type === "connect") {
                 this.#playerId = event.id;
             }
-			document.dispatchEvent(new CustomEvent(`ws-${event.header?.type}`, {detail: event}));
-		});
+            document.dispatchEvent(new CustomEvent(`ws-${event.header?.type}`, {detail: event}));
+    		});
     }
 
     sendEvent(messageType, content) {
