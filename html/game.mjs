@@ -122,12 +122,23 @@ customElements.define('tank-game-window', class extends HTMLElement {
         }
 
 
+        state.tanks = [{ x: .1 }, { x: .3 }, { x: .55 }, { x: .72 }];
         requestAnimationFrame(renderLoop);
     }
 
     processInputs() {
         for (let input in state.inputBuffer) {
             console.log(input);
+            if (input === 'd') {
+                for (let tank of state.tanks) {
+                    tank.x += .01;
+                }
+            }
+            else if (input === 'a') {
+                for (let tank of state.tanks) {
+                    tank.x -= .01;
+                }
+            }
         }
     }
 
