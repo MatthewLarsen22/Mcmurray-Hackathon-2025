@@ -1,16 +1,17 @@
 const rootDir = './html';
 
 let players = {};
-let games = [
-  {
-    id: 'RSOTN',
-    players: []
-  },
-  {
-    id: 'YAGOT',
-    players: []
-  }
-];
+let games = [];
+
+function msg(type){
+  return {
+    header: {
+      from: 'broker',
+      ts: Date.now(),
+      type
+    }
+  };
+}
 
 const server = Bun.serve({
   hostname: Bun.argv[2],
@@ -21,29 +22,56 @@ const server = Bun.serve({
       while ( Object.values(players).includes(id)){
         id = Math.floor(10000 * Math.random());
       }
-      players[ws] = id;
-      ws.send(JSON.stringify({
-        from: 'broker',
-        type: 'connect',
-        ts: Date.now(),
-        id
-      }));
+      players[ws] = {id};
+      ws.send(JSON.stringify(Object.assign(msg('connect'), { id })));
+      ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
+    },
+    close(ws){
+      server.publish(JSON.stringify(msg('exit'), {id: players[ws].id}));
+      if (players[ws].game) ws.unsubscribe(players[ws].game);
+      delete players[ws];
     },
     message(ws, msg){
       let data = JSON.parse(msg);
       Object.assign(data, {
         from: players[ws],
-        ts: data.ts || Date.now()
+        ts: Date.now()
       });
       switch (data.type) {
         case 'list':
-          let list = {
-            from: 'broker',
-            type: 'games',
-            ts: Date.now(),
-            list: games.map(g=>g.id)
+          ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
+          return;
+        case 'rename':
+          if (Object.values(players).includes(data.name)){
+            ws.send(JSON.stringify((msg('reject'))));
+            return;
+          }
+          let old = player[ws];
+          players[ws] = data.name;
+          let event = Object.assign(msg('rename'), {
+            from: old,
+            to: data.name
+          });
+          ws.send(event);
+          server.publish(event);
+          return;
+        case 'create':
+          const alphabet = 'ABCDEFGHIJKMNOPRSTUVXYZ';
+          let id = '';
+          for (let i=0; i<5; i++){
+            let r = Math.floor(Match.random()*alphabet.length);
+            id += alphabet[r];
+          }
+          ws.subscribe(id);
+          let game = {
+            id,
+            players: [{
+              id: data.from,
+              x: Math.random()
+            }]
           };
-          ws.send(JSON.stringify(list));
+          game.push(game);
+          ws.send(JSON.stringify(Object.assign(msg('join'), { game })));
       }
     }
   },
