@@ -15,7 +15,7 @@ export default class {
     }
 
     sendEvent(messageType, content) {
-        let message = content;
+        let message = content ?? {};
         message.header = {
             from: this.#playerId,
             type: messageType,
