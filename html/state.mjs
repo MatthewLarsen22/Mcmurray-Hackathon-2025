@@ -1,7 +1,7 @@
 let msg = [];
 
 export const bus = {
-  send(obj){
+  store(obj){
     let id = '' + Date.now() + Math.floor(10000 * Math.random());
     msg[id] = obj;
     return id;
