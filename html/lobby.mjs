@@ -78,12 +78,12 @@ customElements.define('tank-game', class extends HTMLElement {
 		this.addEventListener('click', ev => {
 			state.game.value = this.innerHTML;
 
-			state.game.inputBuffer = {};
+			state.inputBuffer = {};
 			document.addEventListener('keydown', ev=> {
-				state.game.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
+				state.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
 			});
 			document.addEventListener('keyup', ev=> {
-				delete state.game.inputBuffer[ev.key];
+				delete state.inputBuffer[ev.key];
 			});
 		});
 	}
