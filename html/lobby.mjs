@@ -50,7 +50,7 @@ customElements.define('tank-lobby', class extends HTMLElement {
 			<button>New</button>
 		`;
 
-		this.lastElementChild.addEventListener('click', _=> state.ws.send({ type: 'create' }) );
+ 		this.lastElementChild.addEventListener('click', _=> state.ws.sendEvent( 'create' ) );
 	}
 });
 
