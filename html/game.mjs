@@ -6,6 +6,7 @@ import state from '/state.mjs';
 import { signal, effect } from '/signals-core.mjs';
 
 const TERRAIN_RANGE = .74; // The noise X used for terrain
+const HOUSING_RANGE = .45; // The noise Y used for wind
 const WIND_RANGE = .23; // The noise Y used for wind
 const
     HILL_HEIGHT = 8,
@@ -79,7 +80,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
         basicShotImage.onload = () => this.assets.value = { ...this.assets.value, "shot": basicShotImage }
         const house1Image = new Image();
         house1Image.src = "/assets/House_1.png";
-        house1Image.onload = () => this.assets.value = { ...this.assets.value, "house": house1Image }
+        house1Image.onload = () => this.assets.value = { ...this.assets.value, "house1": house1Image }
 
 
         effect(
@@ -93,6 +94,10 @@ customElements.define('tank-game-window', class extends HTMLElement {
                 this.fieldFill.addColorStop(0, 'green');
                 this.fieldFill.addColorStop(1, 'lightgreen');
                 this.heightmap = heightmap(this._noise, this.playArea.value);
+                this.houses = Array.from({ length: 20 }).map((_, ix) => {
+                    const x = Math.floor(this.playArea.value.w / 20 * ix + (this._noise(HOUSING_RANGE, ix) * this.playArea.value.w / 20))
+                    return [x, this.heightmap.get(x) + 40 + (this._noise(HOUSING_RANGE, ix) + 1) / 2 * 200];
+                })
             }
         )
 
@@ -132,14 +137,14 @@ customElements.define('tank-game-window', class extends HTMLElement {
 
                 const { x } = t,
                     y = this.heightmap.get(t.x)
-                ;
+                    ;
 
                 // Render Barrel
-                this.context.save()
-                this.context.translate(x, y - tankImg.height * .9)
-                this.context.rotate(-Math.PI / 4)
-                this.context.drawImage(barrelImg, -10, -barrelImg.height / 2)
-                this.context.restore()
+                this.context.save();
+                this.context.translate(x, y - tankImg.height * .9);
+                this.context.rotate(-Math.PI / 4); // Rotates CANVAS, not the image. So have to reverse it.
+                this.context.drawImage(barrelImg, -8, -barrelImg.height / 2);
+                this.context.restore();
 
 
                 // Render Tank
@@ -151,8 +156,17 @@ customElements.define('tank-game-window', class extends HTMLElement {
 
         }
 
-        if(this.assets.value["house"]){
-            this.context.drawImage(this.assets.value["house"], this.playArea.w * .8 - this.assets.value["house"].width/2, this.playArea.value.h * .95 - this.assets.value["house"].height)
+        if (this.assets.value["house1"]) {
+            this.houses.forEach(([x, y]) => {
+                this.context.drawImage(
+                    this.assets.value["house1"],
+                    x,
+                    y,
+                );
+            })
+        }
+        else {
+            console.log(this.assets.value)
         }
     }
 });
