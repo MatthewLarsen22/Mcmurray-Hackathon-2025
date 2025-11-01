@@ -77,6 +77,9 @@ customElements.define('tank-game-window', class extends HTMLElement {
         const basicShotImage = new Image();
         basicShotImage.src = "/assets/Basic_Shot.png";
         basicShotImage.onload = () => this.assets.value = { ...this.assets.value, "shot": basicShotImage }
+        const house1Image = new Image();
+        house1Image.src = "/assets/House_1.png";
+        house1Image.onload = () => this.assets.value = { ...this.assets.value, "house": house1Image }
 
 
         effect(
@@ -146,6 +149,10 @@ customElements.define('tank-game-window', class extends HTMLElement {
 
             this.context.filter = 'none';
 
+        }
+
+        if(this.assets.value["house"]){
+            this.context.drawImage(this.assets.value["house"], this.playArea.w * .8 - this.assets.value["house"].width/2, this.playArea.value.h * .95 - this.assets.value["house"].height)
         }
     }
 });
