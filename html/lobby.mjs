@@ -52,7 +52,8 @@ customElements.define('tank-lobby', class extends HTMLElement {
 		`;
 
 		document.addEventListener('ws-join', ev=>{
-			state.game.value = ev.id;
+			console.log('ws-join', ev.detail);
+			state.game.value = ev.detail.game;
 		})
  		this.lastElementChild.addEventListener('click', _=> state.ws.sendEvent( 'create' ) );
 	}
