@@ -22,6 +22,6 @@ export default class {
             ts: Date.now()
         };
 
-        this.#ws.send(JSON.stringify(msg));
+        this.#ws.send(JSON.stringify(message));
     }
 };
