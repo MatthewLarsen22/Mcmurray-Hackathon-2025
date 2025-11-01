@@ -145,12 +145,14 @@ customElements.define('tank-game-window', class extends HTMLElement {
             const barrelImg = this.assets.value["barrel"];
             const shotImg = this.assets.value["shot"];
 
-            (state.tanks ?? [{ x: 50 }, { x: 400 }, { x: 750 }, { x: 1100 }]).forEach((t, ix, arr) => {
+            (state.tanks ?? [{ x: .1 }, { x: .3 }, { x: .55 }, { x: .72 }]).forEach((t, ix, arr) => {
+
 
                 this.context.filter = `hue-rotate(${360 * ix / arr.length}deg)`;
-
-                const { x } = t,
-                    y = this.heightmap.get(t.x)
+                
+                const { x: u_x } = t,
+                    x = u_x * this.playArea.value.w,
+                    y = this.heightmap.get(x)
                     ;
 
                 // Render Barrel
