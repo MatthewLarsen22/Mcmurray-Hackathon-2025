@@ -5,6 +5,16 @@ import "/not_node/alea.mjs"
 import state from '/state.mjs';
 import { signal, effect } from '/signals-core.mjs';
 
+// const game_state = {
+//     players: [
+//         {
+//             x: 0,
+//             id: "myname",
+//         }
+//     ],
+//     me: "myname"
+// }
+
 const TERRAIN_RANGE = .74; // The noise X used for terrain
 const HOUSING_RANGE = .45; // The noise Y used for wind
 const WIND_RANGE = .23; // The noise Y used for wind
@@ -61,6 +71,8 @@ customElements.define('tank-game-window', class extends HTMLElement {
         this._seed = null;
         this.terrain = null;
 
+        console.log("Le Game:", state.game)
+
         this.playArea = signal({ w: window.innerWidth, h: window.innerHeight });
         const onResize = () => {
             console.log("Window resized!")
@@ -85,6 +97,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
 
         effect(
             () => {
+                this._me = state.me;
                 this._seed = window.Alea(state.game.value);
                 this._noise = createNoise2D(this._seed);
                 this.innerHTML = `<canvas id='mygame' width='${this.playArea.value.w}' height='${this.playArea.value.h}'></canvas>`;
@@ -111,6 +124,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
     }
 
     render() {
+        this.context.clearRect(0, 0, this.playArea.value.w, this.playArea.value.h)
         this.context.strokeStyle = "green";
         this.context.lineWidth = 4;
         this.context.fillStyle = this.fieldFill;
@@ -131,7 +145,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
             const barrelImg = this.assets.value["barrel"];
             const shotImg = this.assets.value["shot"];
 
-            (state.tanks ?? [{ x: 50 }, { x: 750 }]).forEach((t, ix, arr) => {
+            (state.tanks ?? [{ x: 50 }, { x: 400 }, { x: 750 }, { x: 1100 }]).forEach((t, ix, arr) => {
 
                 this.context.filter = `hue-rotate(${360 * ix / arr.length}deg)`;
 
@@ -142,7 +156,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
                 // Render Barrel
                 this.context.save();
                 this.context.translate(x, y - tankImg.height * .9);
-                this.context.rotate(-Math.PI / 4); // Rotates CANVAS, not the image. So have to reverse it.
+                this.context.rotate((Date.now() / 1000 + 200 * ix) % (Math.PI * 2)); // Rotates CANVAS, not the image. So have to reverse it.
                 this.context.drawImage(barrelImg, -8, -barrelImg.height / 2);
                 this.context.restore();
 
