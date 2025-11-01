@@ -3,6 +3,7 @@ import css from '/css.mjs';
 import state from '/state.mjs';
 import Queue from '/queue.mjs';
 import '/games.mjs';
+import '/game.mjs';
 
 css(`
 	tank-app{
@@ -25,6 +26,6 @@ customElements.define('tank-app', class extends HTMLElement {
 	render(game) {
 		this.innerHTML = 'lobby' == state.game
 			? '<tank-games></tank-games>'
-			: `<tank-game data-id="${game}"></tank-game>`;
+			: `<tank-game-window data-id="${game}"></tank-game-window>`;
 	}
 });
