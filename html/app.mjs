@@ -18,15 +18,12 @@ customElements.define('tank-app', class extends HTMLElement {
 		super();
 		state.game = signal('lobby');
 		state.ws = new ServerInterface( new WebSocket('/'));
-		document.addEventListener('ws-connect', ev=> effect($_=>
-			this.render(state.game.value))
-		);
-		// state.queue = new Queue(new WebSocket('/'));
+		effect(_=> this.render(state.game.value));
 	}
 	
 	render(game) {
 		this.innerHTML = 'lobby' == state.game
 			? '<tank-lobby></tank-lobby>'
-			: `<tank-game-window data-id="${game}"></tank-game-window>`;
+			: `<tank-game-window></tank-game-window>`;
 	}
 });

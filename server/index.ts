@@ -34,13 +34,14 @@ const server = Bun.serve({
       }
       delete players[ws];
     },
-    message(ws, msg){
-      let data = JSON.parse(msg);
+    message(ws, message){
+      let data = JSON.parse(message);
       Object.assign(data, {
         from: players[ws],
         ts: Date.now()
       });
-      switch (data.type) {
+      console.log('**** ws message ********', data);
+      switch (data.header.type) {
         case 'list':
           ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
           return;
@@ -62,9 +63,10 @@ const server = Bun.serve({
           const alphabet = 'ABCDEFGHIJKMNOPRSTUVXYZ';
           let id = '';
           for (let i=0; i<5; i++){
-            let r = Math.floor(Match.random()*alphabet.length);
+            let r = Math.floor(Math.random()*alphabet.length);
             id += alphabet[r];
           }
+          console.log('creating game', id);
           let game = {
             id,
             players: [{
@@ -73,7 +75,7 @@ const server = Bun.serve({
             }]
           };
           players[ws].game = id;
-          game.push(game);
+          games.push(game);
           ws.subscribe(id);
           ws.send(JSON.stringify(Object.assign(msg('join'), { game })));
       }

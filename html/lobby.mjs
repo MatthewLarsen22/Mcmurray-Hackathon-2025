@@ -19,7 +19,8 @@ css(`
 	}
 
 	tank-lobby .flex { display: flex }
-	tank-lobby .flex-1 { flex: 1}
+	tank-lobby .flex-1 { flex: 1 }
+	tank-lobby .px-2 { padding: 0 0.5rem }
 `);
 
 customElements.define('tank-lobby', class extends HTMLElement {
@@ -42,7 +43,7 @@ customElements.define('tank-lobby', class extends HTMLElement {
 	
 	render() {
 		this.innerHTML = `
-			<div class="flex"><span classs="flex-1">${this.name}</span><button>🖉</button></div>
+			<div class="flex">Name: <span class="flex-1 px-2">${this.#name || ''}</span><button>🖉</button></div>
 			<div>Games:</div>
 			<div>
 				${this.#list.map(g=>`<tank-game>${g}</tank-game>`).join('\n')}
@@ -50,6 +51,10 @@ customElements.define('tank-lobby', class extends HTMLElement {
 			<button>New</button>
 		`;
 
+		document.addEventListener('ws-join', ev=>{
+			console.log('ws-join', ev.detail);
+			state.game.value = ev.detail.game;
+		})
  		this.lastElementChild.addEventListener('click', _=> state.ws.sendEvent( 'create' ) );
 	}
 });
