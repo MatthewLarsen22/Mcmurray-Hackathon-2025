@@ -71,7 +71,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
         this._seed = null;
         this.terrain = null;
 
-        console.log("Le Game:", state.game)
+        console.log("Le Game:", state.game, state.me)
 
         this.playArea = signal({ w: window.innerWidth, h: window.innerHeight });
         const onResize = () => {
@@ -98,6 +98,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
         effect(
             () => {
                 this._me = state.me;
+                console.log("Me:", this._me)
                 this._seed = window.Alea(state.game.value);
                 this._noise = createNoise2D(this._seed);
                 this.innerHTML = `<canvas id='mygame' width='${this.playArea.value.w}' height='${this.playArea.value.h}'></canvas>`;
