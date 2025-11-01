@@ -5,6 +5,8 @@ import "/not_node/alea.mjs"
 import state from '/state.mjs';
 import { signal, effect } from '/signals-core.mjs';
 
+const TERRAIN_RANGE = .74; // The noise X used for terrain
+const WIND_RANGE = .23; // The noise Y used for wind
 const 
     HILL_HEIGHT = 8,
     HILL_WIDTH = 1
@@ -21,7 +23,6 @@ css(`
 
 
 function heightmap(noise, dimensions){
-    const TERRAIN_RANGE = .74;
     const _k = Array.from({length: dimensions.w}).map((_, ix) => ix);
     const AIR_GAP = (dimensions.h * 0.2); // top 1/5 of the stage needs to be air
     const HILL_AREA = (dimensions.h * 0.7); // The area in which hills can exist, leaving some terrain always at the bottom
