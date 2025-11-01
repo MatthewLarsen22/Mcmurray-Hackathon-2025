@@ -115,12 +115,19 @@ customElements.define('tank-game-window', class extends HTMLElement {
         )
 
         const renderLoop = () => {
+            this.processInputs();
             this.render();
             requestAnimationFrame(renderLoop);
         }
 
 
         requestAnimationFrame(renderLoop);
+    }
+
+    processInputs() {
+        for (let input in state.inputBuffer) {
+            console.log(input);
+        }
     }
 
     render() {

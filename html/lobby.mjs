@@ -53,6 +53,7 @@ customElements.define('tank-lobby', class extends HTMLElement {
 
 		document.addEventListener('ws-join', ev=>{
 			console.log('ws-join', ev.detail);
+			state.me = state.game.players[0].id;
 			state.game.value = ev.detail.game;
 		})
  		this.lastElementChild.addEventListener('click', _=> state.ws.sendEvent( 'create' ) );
@@ -77,12 +78,12 @@ customElements.define('tank-game', class extends HTMLElement {
 		this.addEventListener('click', ev => {
 			state.game.value = this.innerHTML;
 
-			state.game.inputBuffer = {};
+			state.inputBuffer = {};
 			document.addEventListener('keydown', ev=> {
-				state.game.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
+				state.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
 			});
 			document.addEventListener('keyup', ev=> {
-				delete state.game.inputBuffer[ev.key];
+				delete state.inputBuffer[ev.key];
 			});
 		});
 	}
