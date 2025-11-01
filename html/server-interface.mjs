@@ -9,7 +9,7 @@ export default class {
             if (event.header?.type === "connect") {
                 this.#playerId = event.id;
             }
-			document.dispatchEvent(new CustomEvent(`ws-${event.header?.type}`, event.content));
+			document.dispatchEvent(new CustomEvent(`ws-${event.header?.type}`, {detail: event}));
 		});
     }
 
