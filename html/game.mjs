@@ -5,8 +5,7 @@ import "/not_node/alea.mjs"
 import state from '/state.mjs';
 import { signal, effect } from '/signals-core.mjs';
 
-const PLAY_WIDTH = window.innerWidth,
-    PLAY_HEIGHT = window.innerHeight,
+const 
     HILL_HEIGHT = 8,
     HILL_WIDTH = 1
 ;
@@ -14,17 +13,18 @@ const PLAY_WIDTH = window.innerWidth,
 
 css(`
 	tank-game-window{
-        width: ${PLAY_WIDTH}px;
-        height: ${PLAY_HEIGHT}px;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
 	}
 `);
 
 
-function heightmap(noise){
+function heightmap(noise, dimensions){
     const TERRAIN_RANGE = .74;
-    const _k = Array.from({length: PLAY_WIDTH}).map((_, ix) => ix);
-    const AIR_GAP = (PLAY_HEIGHT * 0.2); // top 1/5 of the stage needs to be air
-    const HILL_AREA = (PLAY_HEIGHT * 0.7); // The area in which hills can exist, leaving some terrain always at the bottom
+    const _k = Array.from({length: dimensions.w}).map((_, ix) => ix);
+    const AIR_GAP = (dimensions.h * 0.2); // top 1/5 of the stage needs to be air
+    const HILL_AREA = (dimensions.h * 0.7); // The area in which hills can exist, leaving some terrain always at the bottom
     const hillScale = (HILL_HEIGHT / 10);
     const _t = Object.fromEntries(_k.map((ix) => [
         ix,
@@ -36,20 +36,19 @@ function heightmap(noise){
         AIR_GAP // Leave the top of the field empty
         + HILL_AREA // Go all the way to the "ground"
         - ( // Move back "up" the hill amount, scaled.
-            ((noise(TERRAIN_RANGE, ix / PLAY_WIDTH * 4 / HILL_WIDTH) + 1) / 2 ) // Noise (converted from range [-1, 1] to range [0,1])
+            ((noise(TERRAIN_RANGE, ix / dimensions.w * 4 / HILL_WIDTH) + 1) / 2 ) // Noise (converted from range [-1, 1] to range [0,1])
             * hillScale * HILL_AREA
         )
     ]));
     return {
         get(x){
-            const u = Math.round(x * PLAY_WIDTH);
+            const u = Math.round(x * dimensions.w);
             return _t[u];
         },
         all(){
             return Object.entries(_t)
         }
     }
-
 }
 
 customElements.define('tank-game-window', class extends HTMLElement {
@@ -58,17 +57,24 @@ customElements.define('tank-game-window', class extends HTMLElement {
         this._seed = null;
         this.terrain = null;
 
+        this.playArea = signal({w: window.innerWidth, h: window.innerHeight});
+        const onResize = () => {
+            console.log("Window resized!")
+            this.playArea.value = {w: window.innerWidth, h: window.innerHeight};
+        }
+        window.addEventListener("resize", onResize)
+
         effect(
             () => {
                 this._seed = window.Alea(state.game.value);
                 this._noise = createNoise2D(this._seed);
-                this.innerHTML=`<canvas id='mygame' width='${PLAY_WIDTH}' height='${PLAY_HEIGHT}'></canvas>`;
+                this.innerHTML=`<canvas id='mygame' width='${this.playArea.value.w}' height='${this.playArea.value.h}'></canvas>`;
                 this.canvas = document.querySelector("canvas#mygame");
                 this.context = this.canvas.getContext('2d');
-                this.fieldFill = this.context.createLinearGradient(0, PLAY_HEIGHT, 0, 0);
+                this.fieldFill = this.context.createLinearGradient(0, this.playArea.value.h, 0, 0);
                 this.fieldFill.addColorStop(0, 'green');
                 this.fieldFill.addColorStop(1, 'lightgreen');
-                this.heightmap = heightmap(this._noise);
+                this.heightmap = heightmap(this._noise, this.playArea.value);
             }
         )
 
@@ -86,11 +92,11 @@ customElements.define('tank-game-window', class extends HTMLElement {
         this.context.lineWidth=4;
         this.context.fillStyle=this.fieldFill;
         this.context.beginPath();
-        this.context.moveTo(0, PLAY_HEIGHT);
+        this.context.moveTo(0, this.playArea.value.h);
         this.heightmap.all().forEach(([x,y]) => {
             this.context.lineTo(x,y)
         })
-        this.context.lineTo(PLAY_WIDTH, PLAY_HEIGHT);
+        this.context.lineTo(this.playArea.value.w, this.playArea.value.h);
         this.context.closePath();
         this.context.stroke();
         this.context.fill();
