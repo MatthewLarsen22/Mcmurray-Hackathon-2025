@@ -98,7 +98,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
         effect(
             () => {
                 this._me = state.me;
-                console.log("Me:", this._me)
+                console.log("Me:", this._me);
                 this._seed = window.Alea(state.game.value);
                 this._noise = createNoise2D(this._seed);
                 this.innerHTML = `<canvas id='mygame' width='${this.playArea.value.w}' height='${this.playArea.value.h}'></canvas>`;
@@ -131,12 +131,12 @@ customElements.define('tank-game-window', class extends HTMLElement {
             console.log(input);
             if (input === 'd') {
                 for (let tank of state.tanks) {
-                    tank.x += .01;
+                    tank.x = (tank.x + .01) % 1;
                 }
             }
             else if (input === 'a') {
                 for (let tank of state.tanks) {
-                    tank.x -= .01;
+                    tank.x = (tank.x - .01) % 1;
                 }
             }
         }
