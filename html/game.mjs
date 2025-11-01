@@ -158,7 +158,7 @@ customElements.define('tank-game-window', class extends HTMLElement {
                 // Render Barrel
                 this.context.save();
                 this.context.translate(x, y - tankImg.height * .9);
-                this.context.rotate((Date.now() / 1000 + 200 * ix) % (Math.PI * 2)); // Rotates CANVAS, not the image. So have to reverse it.
+                this.context.rotate((Date.now() / 1000 + 1 * ix) % (Math.PI * 2)); // Rotates CANVAS, not the image. So have to reverse it.
                 this.context.drawImage(barrelImg, -8, -barrelImg.height / 2);
                 this.context.restore();
 
