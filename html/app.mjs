@@ -1,7 +1,7 @@
 import { signal, effect } from '/signals-core.mjs';
 import css from '/css.mjs';
 import state from '/state.mjs';
-import Queue from '/queue.mjs';
+import ServerInterface from '/server-interface.mjs';
 import '/games.mjs';
 import '/game.mjs';
 
@@ -20,7 +20,8 @@ customElements.define('tank-app', class extends HTMLElement {
 		document.addEventListener('ws-connect', ev=> effect($_=>
 			this.render(state.game.value))
 		);
-		state.queue = new Queue(new WebSocket('/'));
+		// state.queue = new Queue(new WebSocket('/'));
+		state.ws = new ServerInterface( new WebSocket('/'));
 	}
 	
 	render(game) {

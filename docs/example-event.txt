@@ -1,0 +1,15 @@
+{
+    header: {
+        from: // player id
+        type: // message type string
+        ts: // Timestamp Date.now()
+    }
+
+}
+
+message types:
+    connect - initial player connection. Returns a randomly generated player id.
+    gamelist - lists game ids for the lobby
+    rename - pass up a name property for the new player name
+    rename - from and to events.
+    exit 

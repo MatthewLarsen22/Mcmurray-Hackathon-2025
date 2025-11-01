@@ -56,6 +56,16 @@ css(`
 customElements.define('tank-game', class extends HTMLElement {
 	constructor(){
 		super();
-		this.addEventListener('click', ev => state.game.value = this.innerHTML );
+		this.addEventListener('click', ev => {
+			state.game.value = this.innerHTML;
+
+			state.game.inputBuffer = {};
+			document.addEventListener('keydown', ev=> {
+				state.game.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
+			});
+			document.addEventListener('keyup', ev=> {
+				delete state.game.inputBuffer[ev.key];
+			});
+		});
 	}
 });
