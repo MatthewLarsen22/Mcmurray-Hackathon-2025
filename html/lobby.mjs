@@ -24,38 +24,30 @@ css(`
 `);
 
 customElements.define('tank-lobby', class extends HTMLElement {
-	#name = null;
 	#list = [];
 
 	constructor(){
 		super();
 		document.addEventListener('ws-connect', ev=>{
-			console.log('ws-connect', ev.detail);
-			this.#name = ev.detail.id;
+			state.me = ev.detail;
 			this.render();
 		});
-		document.addEventListener('ws-gamelist', ev=>{
-			console.log('ws-gamelist', ev.detail);
-			this.#list = ev.detail.list;
+		document.addEventListener('ws-lobby', ev=>{
+			this.#list = ev.detail.games;
 			this.render();
 		});
 	}
 	
 	render() {
 		this.innerHTML = `
-			<div class="flex">Name: <span class="flex-1 px-2">${this.#name || ''}</span><button>🖉</button></div>
+			<div class="flex">Name: <span class="flex-1 px-2">${state.me.name || ''}</span><button>🖉</button></div>
 			<div>Games:</div>
 			<div>
-				${this.#list.map(g=>`<tank-game>${g}</tank-game>`).join('\n')}
+				${this.#list.map(g=>`<tank-game data-id="${g.id}">${g.id} (${g.players})</tank-game>`).join('\n')}
 			</div>
 			<button>New</button>
 		`;
 
-		document.addEventListener('ws-join', ev=>{
-			console.log('ws-join', ev.detail);
-			state.me = ev.detail.game.players[0].id;
-			state.game.value = ev.detail.game;
-		})
  		this.lastElementChild.addEventListener('click', _=> state.ws.sendEvent( 'create' ) );
 	}
 });
@@ -76,15 +68,7 @@ customElements.define('tank-game', class extends HTMLElement {
 	constructor(){
 		super();
 		this.addEventListener('click', ev => {
-			state.game.value = this.innerHTML;
-
-			state.inputBuffer = {};
-			document.addEventListener('keydown', ev=> {
-				state.inputBuffer[ev.key] = new Date(Date.now()).toJSON();
-			});
-			document.addEventListener('keyup', ev=> {
-				delete state.inputBuffer[ev.key];
-			});
+			state.ws.sendEvent('join', { game: this.getAttribute('data-id')});
 		});
 	}
 });

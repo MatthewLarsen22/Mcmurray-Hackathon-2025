@@ -1,36 +1,16 @@
-
 import css from '/css.mjs';
 import { createNoise2D } from "/not_node/simplex-noise.mjs"
 import "/not_node/alea.mjs"
 import state from '/state.mjs';
 import { signal, effect } from '/signals-core.mjs';
 
-// const game_state = {
-//     players: [
-//         {
-//             x: 0,
-//             id: "myname",
-//         }
-//     ],
-//     me: "myname"
-// }
-
 const TERRAIN_RANGE = .74; // The noise X used for terrain
 const HOUSING_RANGE = .45; // The noise Y used for wind
 const WIND_RANGE = .23; // The noise Y used for wind
 const
-    HILL_HEIGHT = 8,
-    HILL_WIDTH = 1
-    ;
-
-
-css(`
-	tank-game-window{
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-	}
-`);
+  HILL_HEIGHT = 8,
+  HILL_WIDTH = 1
+  ;
 
 
 function heightmap(noise, dimensions) {
@@ -65,143 +45,156 @@ function heightmap(noise, dimensions) {
     }
 }
 
+
+css(`
+  tank-game-window{
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+`);
+
 customElements.define('tank-game-window', class extends HTMLElement {
+    #me = null;
+    #width = 800;
+    #height = 600;
+    inputBuffer = {};
+    
     constructor() {
         super();
-        this._seed = null;
-        this.terrain = null;
+        let game = state.game.value;
+        this.#me = game.players[state.me.id];
+        const seed = window.Alea(game.id);
+        const noise = createNoise2D(seed);
+    this.heightmap = heightmap(noise, {w: this.#width, h: this.#height});
 
-        console.log("Le Game:", state.game, state.me)
+        console.log("Le Game:", game, state.me)
 
-        this.playArea = signal({ w: window.innerWidth, h: window.innerHeight });
-        const onResize = () => {
-            console.log("Window resized!")
-            this.playArea.value = { w: window.innerWidth, h: window.innerHeight };
-        }
-        window.addEventListener("resize", onResize);
-
-        this.assets = signal({})
+        this.assets = {};
         const tankImage = new Image();
         tankImage.src = "/assets/Tank.png";
-        tankImage.onload = () => this.assets.value = { ...this.assets.value, "tank": tankImage }
+        tankImage.onload = () => this.assets.tank = tankImage
         const barrelImage = new Image();
         barrelImage.src = "/assets/Barrel.png";
-        barrelImage.onload = () => this.assets.value = { ...this.assets.value, "barrel": barrelImage }
+        barrelImage.onload = () => this.assets.barrel = barrelImage;
         const basicShotImage = new Image();
         basicShotImage.src = "/assets/Basic_Shot.png";
-        basicShotImage.onload = () => this.assets.value = { ...this.assets.value, "shot": basicShotImage }
+        basicShotImage.onload = () => this.assets.shot = basicShotImage;
         const house1Image = new Image();
         house1Image.src = "/assets/House_1.png";
-        house1Image.onload = () => this.assets.value = { ...this.assets.value, "house1": house1Image }
+        house1Image.onload = () => this.assets.house1 = house1Image;
+        
+        document.addEventListener('keydown', ev=>{
+          this.processInputs(ev);
+          state.game.value = game;
+        });
 
+        effect(_=> this.render(state.game.value) );
+        //requestAnimationFrame(renderLoop);
+    }
 
-        effect(
-            () => {
-                this._me = state.me;
-                console.log("Me:", this._me);
-                this._seed = window.Alea(state.game.value);
-                this._noise = createNoise2D(this._seed);
-                this.innerHTML = `<canvas id='mygame' width='${this.playArea.value.w}' height='${this.playArea.value.h}'></canvas>`;
-                this.canvas = document.querySelector("canvas#mygame");
-                this.context = this.canvas.getContext('2d');
-                this.fieldFill = this.context.createLinearGradient(0, this.playArea.value.h, 0, 0);
-                this.fieldFill.addColorStop(0, 'green');
-                this.fieldFill.addColorStop(1, 'lightgreen');
-                this.heightmap = heightmap(this._noise, this.playArea.value);
-                this.houses = Array.from({ length: 20 }).map((_, ix) => {
-                    const x = Math.floor(this.playArea.value.w / 20 * ix + (this._noise(HOUSING_RANGE, ix) * this.playArea.value.w / 20))
-                    return [x, this.heightmap.get(x) + 40 + (this._noise(HOUSING_RANGE, ix) + 1) / 2 * 200];
-                })
-            }
-        )
-
-        const renderLoop = () => {
-            this.processInputs();
-            this.render();
-            requestAnimationFrame(renderLoop);
-        }
-
-
-        state.tanks = [{ x: .1 }, { x: .3 }, { x: .55 }, { x: .72 }];
+    renderLoop() {
+        this.processInputs();
+        this.render();
         requestAnimationFrame(renderLoop);
     }
 
-    processInputs() {
-        for (let input in state.inputBuffer) {
-            console.log(input);
-            if (input === 'd') {
-                for (let tank of state.tanks) {
-                    tank.x = (tank.x + .01) % 1;
-                }
-            }
-            else if (input === 'a') {
-                for (let tank of state.tanks) {
-                    tank.x = (tank.x - .01) % 1;
-                }
-            }
+    processInputs(ev) {
+        console.log('keypress');
+        switch (ev.key) {
+            case 'a':
+                state.ws.sendEvent('left');
+                this.#me.x -= 0.01;
+                break
+            case 'd':
+                state.ws.sendEvent('right');
+                this.#me.x += 0.01;
+                break;
         }
+
+        this.#me.x = (this.#me.x + 1) % 1;
     }
 
-    render() {
-        this.context.clearRect(0, 0, this.playArea.value.w, this.playArea.value.h)
-        this.context.strokeStyle = "green";
-        this.context.lineWidth = 4;
-        this.context.fillStyle = this.fieldFill;
-        this.context.beginPath();
-        this.context.moveTo(0, this.playArea.value.h);
-        this.heightmap.all().forEach(([x, y]) => {
-            this.context.lineTo(x, y)
-        })
-        this.context.lineTo(this.playArea.value.w, this.playArea.value.h);
-        this.context.closePath();
-        this.context.stroke();
-        this.context.fill();
-
-        if (this.assets.value["tank"] && this.assets.value["barrel"] && this.assets.value["shot"]) {
-
-
-            const tankImg = this.assets.value["tank"];
-            const barrelImg = this.assets.value["barrel"];
-            const shotImg = this.assets.value["shot"];
-
-            (state.tanks ?? [{ x: .1 }, { x: .3 }, { x: .55 }, { x: .72 }]).forEach((t, ix, arr) => {
-
-
-                this.context.filter = `hue-rotate(${360 * ix / arr.length}deg)`;
+    render(game) {
+      console.log('rendering...');
+        this.innerHTML = `<canvas id='mygame' width='${this.#width}' height='${this.#height}'></canvas>`;
+        let ctx = this.firstElementChild.getContext('2d');
                 
-                const { x: u_x } = t,
-                    x = u_x * this.playArea.value.w,
+        ctx.clearRect(0, 0, this.#width, this.#height);
+
+        if (this.assets.tank && this.assets.barrel && this.assets.shot) {
+            const tankImg = this.assets.tank;
+            const barrelImg = this.assets.barrel;
+            const shotImg = this.assets.shot;
+
+            // console.log('players', game.players);
+            Object.keys(game.players).forEach((t, ix, arr) => {
+
+                ctx.filter = `hue-rotate(${360 * ix / arr.length}deg)`;
+                
+                const { x: u_x } = game.players[t],
+                    x = u_x * this.#width,
                     y = this.heightmap.get(x)
                     ;
 
                 // Render Barrel
-                this.context.save();
-                this.context.translate(x, y - tankImg.height * .9);
-                this.context.rotate((Date.now() / 1000 + 1 * ix) % (Math.PI * 2)); // Rotates CANVAS, not the image. So have to reverse it.
-                this.context.drawImage(barrelImg, -8, -barrelImg.height / 2);
-                this.context.restore();
+                ctx.save();
+                ctx.translate(x, y - tankImg.height * .9);
+                ctx.rotate((Date.now() / 1000 + 1 * ix) % (Math.PI * 2)); // Rotates CANVAS, not the image. So have to reverse it.
+                ctx.drawImage(barrelImg, -8, -barrelImg.height / 2);
+                ctx.restore();
 
 
                 // Render Tank
-                this.context.drawImage(tankImg, x - tankImg.width / 2, y - tankImg.height);
+                ctx.drawImage(tankImg, x - tankImg.width / 2, y - tankImg.height);
 
-            })
+            });
 
-            this.context.filter = 'none';
-
-        }
-
-        if (this.assets.value["house1"]) {
-            this.houses.forEach(([x, y]) => {
-                this.context.drawImage(
-                    this.assets.value["house1"],
-                    x,
-                    y,
-                );
-            })
-        }
-        else {
-            console.log(this.assets.value)
+            ctx.filter = 'none';
         }
     }
+});
+
+css(`
+  tank-terrain {
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+`);
+
+customElements.define('tank-terrain', class extends HTMLElement {
+  #context = null;
+  #width = 800;
+  #height = 600;
+
+  constructor(){
+    super();
+    let seed = window.Alea(this.getAttribute('data-id'));
+    let noise = createNoise2D(seed);
+    this.heightmap = heightmap(noise, {w: this.#width, h: this.#height});
+    this.render();
+  }
+
+  render(){
+    this.innerHTML = `<canvas id='mygame' width='${this.#width}' height='${this.#height}'></canvas>`;
+    let ctx = this.firstElementChild.getContext('2d');
+    let fieldFill = ctx.createLinearGradient(0, this.#height, 0, 0);
+    fieldFill.addColorStop(0, 'green');
+    fieldFill.addColorStop(1, 'lightgreen');
+    ctx.clearRect(0, 0, this.#width, this.#height);
+    ctx.strokeStyle = "green";
+    ctx.lineWidth = 4;
+    ctx.fillStyle = fieldFill;
+    ctx.beginPath();
+    ctx.moveTo(0, this.#height);
+    this.heightmap.all().forEach(([x, y]) => {
+        console.log('x:', x, 'y:',y);
+        ctx.lineTo(x, y)
+    });
+    ctx.lineTo(this.#width, this.#height);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+  }
 });

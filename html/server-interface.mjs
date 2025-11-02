@@ -1,26 +1,25 @@
+import state from '/state.mjs';
+
 export default class {
     #ws = null;
-    #playerId = null;
 
     constructor(ws) {
         this.#ws = ws;
         this.#ws.addEventListener('message', e=> {
-            let event = JSON.parse(e.data);
-            console.log('ws message', event);
-            if (event.header?.type === "connect") {
-                this.#playerId = event.id;
-            }
+            const event = JSON.parse(e.data);
+            console.log('ws message event', event);
             document.dispatchEvent(new CustomEvent(`ws-${event.header?.type}`, {detail: event}));
     		});
     }
 
     sendEvent(messageType, content) {
-        let message = content ?? {};
-        message.header = {
-            from: this.#playerId,
-            type: messageType,
-            ts: Date.now()
-        };
+        const message = Object.assign({}, content, {
+            header: {
+                from: state.me.id,
+                type: messageType,
+                ts: Date.now()
+            }
+        });
 
         this.#ws.send(JSON.stringify(message));
     }

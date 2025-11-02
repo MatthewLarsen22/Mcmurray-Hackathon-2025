@@ -1,9 +1,12 @@
-import { signal, effect } from '/signals-core.mjs';
+import { signal, effect, untracked } from '/signals-core.mjs';
 import css from '/css.mjs';
 import state from '/state.mjs';
 import ServerInterface from '/server-interface.mjs';
 import '/lobby.mjs';
 import '/game.mjs';
+
+let stage = signal('lobby');
+state.game = signal(null);
 
 css(`
 	tank-app{
@@ -16,14 +19,24 @@ css(`
 customElements.define('tank-app', class extends HTMLElement {
 	constructor(){
 		super();
-		state.game = signal('lobby');
 		state.ws = new ServerInterface( new WebSocket('/'));
-		effect(_=> this.render(state.game.value));
+		effect(_=> {
+			const s = stage.value;
+			untracked(_=> this.render(s));
+		});
 	}
 	
-	render(game) {
-		this.innerHTML = 'lobby' == state.game
+	render(stage) {
+		this.innerHTML = 'lobby' == stage
 			? '<tank-lobby></tank-lobby>'
-			: `<tank-game-window></tank-game-window>`;
+			: `
+				<tank-terrain data-id="${stage}"></tank-terrain>
+				<tank-game-window></tank-game-window>
+			`;
 	}
+});
+
+document.addEventListener('ws-game', ev=>{
+	state.game.value = ev.detail;
+	stage.value = ev.detail.id;
 });

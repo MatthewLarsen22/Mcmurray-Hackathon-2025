@@ -1,7 +1,7 @@
 const rootDir = './html';
 
 let players = {};
-let games = [];
+let games = {};
 
 function msg(type){
   return {
@@ -17,48 +17,38 @@ const server = Bun.serve({
   hostname: Bun.argv[2],
   port: Bun.argv[3],
   websocket: {
+    data: {},
     open(ws){
       let id = Math.floor(10000 * Math.random());
       while ( Object.values(players).includes(id)){
         id = Math.floor(10000 * Math.random());
       }
-      players[ws] = {id};
-      ws.send(JSON.stringify(Object.assign(msg('connect'), { id })));
-      ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
+      ws.data = {id, name: id};
+
+      ws.send(JSON.stringify(Object.assign(msg('connect'), ws.data)));
+      ws.subscribe('lobby');
+      lobby();
     },
+
     close(ws){
-      console.log('game', players[ws].game);
-      if (players[ws].game){
-        server.publish(players[ws].game, JSON.stringify(msg('exit'), {id: players[ws].id}));
-        ws.unsubscribe(players[ws].game);
+      if (ws.data.game){
+        ws.unsubscribe(ws.data.game);
+        let game = games[ws.data.game];
+        delete game.players[ws.data.id];
+        console.log('players', Object.keys(game.players));
+        if (! Object.keys(game.players).length) delete games[ws.data.game];
       }
-      delete players[ws];
     },
-    message(ws, message){
-      let data = JSON.parse(message);
-      Object.assign(data, {
-        from: players[ws],
-        ts: Date.now()
-      });
+
+    message(ws, m){
+      let data = JSON.parse(m);
       console.log('**** ws message ********', data);
+      let x;
+
       switch (data.header.type) {
-        case 'list':
-          ws.send(JSON.stringify(Object.assign(msg('gamelist'), { list: games.map(g=>g.id) })));
-          return;
         case 'rename':
-          if (Object.values(players).includes(data.name)){
-            ws.send(JSON.stringify((msg('reject'))));
-            return;
-          }
-          let old = player[ws];
-          players[ws] = data.name;
-          let event = Object.assign(msg('rename'), {
-            from: old,
-            to: data.name
-          });
-          ws.send(event);
-          server.publish(event);
-          return;
+          ws.data.name = data.name;
+          break;
         case 'create':
           const alphabet = 'ABCDEFGHIJKMNOPRSTUVXYZ';
           let id = '';
@@ -66,18 +56,38 @@ const server = Bun.serve({
             let r = Math.floor(Math.random()*alphabet.length);
             id += alphabet[r];
           }
-          console.log('creating game', id);
-          let game = {
+          ws.data.game = id;
+          games[id] = {
             id,
-            players: [{
-              id: data.from,
+            players: {[ws.data.id]: {
+              name: ws.data.name,
               x: Math.random()
-            }]
+            }}
           };
-          players[ws].game = id;
-          games.push(game);
+          ws.unsubscribe('lobby');
           ws.subscribe(id);
-          ws.send(JSON.stringify(Object.assign(msg('join'), { game })));
+          lobby();
+          break;
+        case 'join':
+          if ( Object.keys(games).includes(data.game) ){
+            ws.unsubscribe('lobby');
+            ws.subscribe(data.game);
+            ws.data.game = data.game;
+            games[data.game].players[ws.data.id] = {
+              name: ws.data.name,
+              x: Math.random()
+            };
+            lobby();
+          }
+          break;
+        case 'left':
+          x = games[ws.data.game].players[ws.data.id].x - 0.01;
+          games[ws.data.game].players[ws.data.id].x = (x+1) % 1;
+          break;
+        case 'right':
+          x = games[ws.data.game].players[ws.data.id].x + 0.01;
+          games[ws.data.game].players[ws.data.id].x = (x+1) % 1;
+          break;
       }
     }
   },
@@ -88,7 +98,6 @@ const server = Bun.serve({
         return;
     }
     let path = new URL(req.url).pathname;
-    console.log('path', req.url, path);
     //path.replace(/\.\.+/, '.')
     let file = Bun.file(rootDir+path);
     file = await file.stat()
@@ -101,3 +110,20 @@ const server = Bun.serve({
 });
 
 console.log(`Listening on ${server.hostname}:${server.port}`);
+
+function lobby(){
+  let keys = Object.keys(games);
+  if (keys) {
+    server.publish('lobby', JSON.stringify(Object.assign(msg('lobby'), {
+      games: keys.map(id=>({
+        id,
+        players: Object.keys(games[id].players).length
+      }))
+    })));
+  }
+}
+setInterval(_=>{
+  for (let id of Object.keys(games)) {
+    server.publish(id, JSON.stringify(Object.assign(msg('game'), games[id])));
+  }
+}, 200);
